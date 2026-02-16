@@ -1,246 +1,228 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Zombie Horror Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
-
 body {
-    margin: 0;
-    overflow: hidden;
-    background: #0a0a0a;
-    font-family: 'Orbitron', sans-serif;
+    margin:0;
+    overflow:hidden;
+    background:#0a0a0a;
+    font-family:'Orbitron', sans-serif;
 }
-
 canvas {
-    display: block;
+    display:block;
     background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%);
-    box-shadow: 0 0 50px rgba(255,0,0,0.5) inset;
+    box-shadow:0 0 50px rgba(255,0,0,0.5) inset;
 }
-
 #ui {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #00ff99;
-    font-size: 28px;
-    text-shadow: 0 0 10px #00ff99, 0 0 20px #00ff99, 0 0 30px #00ff99;
+    position:absolute;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
+    color:#00ff99;
+    font-size:28px;
+    text-shadow:0 0 10px #00ff99,0 0 20px #00ff99,0 0 30px #00ff99;
+    z-index:5;
 }
-
 #message {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #ff0000;
-    font-size: 60px;
-    display: none;
-    text-align: center;
-    text-shadow:
-        0 0 10px #ff0000,
-        0 0 20px #ff0000,
-        0 0 30px #ff6600,
-        0 0 40px #ff3300;
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    color:#ff0000;
+    font-size:60px;
+    text-align:center;
+    text-shadow:0 0 10px #ff0000,0 0 20px #ff0000,0 0 30px #ff6600,0 0 40px #ff3300;
+    display:none;
+    z-index:11;
 }
-
 button {
-    padding: 15px 35px;
-    font-size: 22px;
-    margin-top: 25px;
-    cursor: pointer;
-    background: linear-gradient(45deg, #ff0000, #ff3300, #ff6600);
-    border: 2px solid #fff;
-    border-radius: 15px;
-    color: #fff;
-    box-shadow: 0 0 20px rgba(255,50,0,0.8), 0 0 40px rgba(255,100,0,0.6);
+    padding:15px 35px;
+    font-size:22px;
+    margin-top:25px;
+    cursor:pointer;
+    background: linear-gradient(45deg,#ff0000,#ff3300,#ff6600);
+    border:2px solid #fff;
+    border-radius:15px;
+    color:#fff;
+    box-shadow:0 0 20px rgba(255,50,0,0.8),0 0 40px rgba(255,100,0,0.6);
     transition: all 0.3s ease-in-out;
 }
-button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 30px rgba(255,0,0,1), 0 0 60px rgba(255,100,0,0.8);
+button:hover{
+    transform:scale(1.1);
+    box-shadow:0 0 30px rgba(255,0,0,1),0 0 60px rgba(255,100,0,0.8);
+}
+#overlay {
+    position:absolute;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.7);
+    display:none;
+    z-index:10;
 }
 </style>
 </head>
 <body>
 
 <div id="ui">Time: <span id="timer">20</span></div>
+<div id="overlay"></div>
 <div id="message"></div>
 <canvas id="game"></canvas>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+// --- Canvas
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
 
-// player & game variables
-let keys = {}, zombies = [], bloodStains = [];
-let health = 100, displayHealth = 100;
-let timer = 20, gameRunning = true, shake = 0;
-let currentLevel = 1;
+// --- Game variables
+let keys={}, zombies=[], bloodStains=[];
+let health=100, displayHealth=100;
+let timer=20, gameRunning=true, shake=0;
+let currentLevel=1;
 let spawnInterval1, spawnInterval2, spawnInterval3, timerInterval;
 
-// sounds
-const hitSound = new Audio("https://actions.google.com/sounds/v1/impacts/crash.ogg");
-const zombieSound = new Audio("https://actions.google.com/sounds/v1/human_voices/zombie_growl.ogg");
-const stepSound = new Audio("https://actions.google.com/sounds/v1/foley/footsteps_concrete.ogg");
+// --- Sounds
+const hitSound=new Audio("https://freesound.org/data/previews/569/569181_5034480-lq.mp3");
+const zombieSound=new Audio("https://freesound.org/data/previews/502/502556_10224111-lq.mp3");
+zombieSound.loop=true; zombieSound.volume=0.4;
+const stepSound=new Audio("https://freesound.org/data/previews/186/186942_3247035-lq.mp3");
+stepSound.volume=0.5;
 
-// sprites
-const playerImg = new Image();
-playerImg.src = "https://i.imgur.com/4LGAZ8t.png";
-const zombieImg = new Image();
-zombieImg.src = "https://i.imgur.com/9XntKXG.png";
+// --- Sprites
+const playerImg=new Image(); playerImg.src="https://i.imgur.com/4LGAZ8t.png";
+const zombieImg=new Image(); 
+zombieImg.src="https://www.nicepng.com/png/detail/247-2471849_zombie-0-top-down-zombie-sprite-sheet.png";
+const player={x:canvas.width/2,y:canvas.height/2,size:35,speed:4};
 
-const player = { x: canvas.width/2, y: canvas.height/2, size: 35, speed: 4 };
-
-// controls
-document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
-document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+// --- Controls
+document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
+document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 
 // --- SPAWN ZOMBIE
-function spawnZombie(sizeMin, sizeMax, speedMin, speedMax, maxZombies){
-    if(zombies.length >= maxZombies) return;
-    const side = Math.floor(Math.random()*4);
-    let x, y;
-    if(side===0){ x=0; y=Math.random()*canvas.height; }
-    if(side===1){ x=canvas.width; y=Math.random()*canvas.height; }
-    if(side===2){ x=Math.random()*canvas.width; y=0; }
-    if(side===3){ x=Math.random()*canvas.width; y=canvas.height; }
+function spawnZombie(sizeMin,sizeMax,speedMin,speedMax,maxZombies){
+    if(zombies.length>=maxZombies) return;
+    const side=Math.floor(Math.random()*4);
+    let x,y;
+    if(side===0){x=0;y=Math.random()*canvas.height;}
+    if(side===1){x=canvas.width;y=Math.random()*canvas.height;}
+    if(side===2){x=Math.random()*canvas.width;y=0;}
+    if(side===3){x=Math.random()*canvas.width;y=canvas.height;}
 
-    zombies.push({
-        x, y,
-        size: sizeMin + Math.random()*(sizeMax-sizeMin),
-        speed: speedMin + Math.random()*(speedMax-speedMin)
-    });
+    zombies.push({x,y,size:sizeMin+Math.random()*(sizeMax-sizeMin),speed:speedMin+Math.random()*(speedMax-speedMin)});
     zombieSound.play();
 }
 
-// --- UPDATE FUNCTION
+// --- UPDATE
 function update(){
     if(!gameRunning) return;
-
-    let moving = false;
-    if(keys["arrowup"] || keys["w"]){ player.y -= player.speed; moving = true; }
-    if(keys["arrowdown"] || keys["s"]){ player.y += player.speed; moving = true; }
-    if(keys["arrowleft"] || keys["a"]){ player.x -= player.speed; moving = true; }
-    if(keys["arrowright"] || keys["d"]){ player.x += player.speed; moving = true; }
+    let moving=false;
+    if(keys["arrowup"]||keys["w"]){player.y-=player.speed;moving=true;}
+    if(keys["arrowdown"]||keys["s"]){player.y+=player.speed;moving=true;}
+    if(keys["arrowleft"]||keys["a"]){player.x-=player.speed;moving=true;}
+    if(keys["arrowright"]||keys["d"]){player.x+=player.speed;moving=true;}
 
     if(moving && Math.random()<0.05) stepSound.play();
 
     zombies.forEach(z=>{
-        const dx = player.x - z.x, dy = player.y - z.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        z.x += dx/dist * z.speed;
-        z.y += dy/dist * z.speed;
-
-        if(dist < player.size){
-            health -= 0.3;
-            shake = 4;
+        const dx=player.x-z.x, dy=player.y-z.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        z.x+=dx/dist*z.speed;
+        z.y+=dy/dist*z.speed;
+        if(dist<player.size){
+            health-=0.3;
+            shake=4;
             hitSound.play();
-            bloodStains.push({x: player.x, y: player.y, size: 30+Math.random()*20});
+            bloodStains.push({x:player.x,y:player.y,size:30+Math.random()*20});
         }
     });
 
-    if(health<=0){ endGame("💀 YOU DIED"); }
+    if(health<=0) endGame("💀 YOU DIED");
 
-    displayHealth += (health - displayHealth)*0.1;
+    displayHealth+=(health-displayHealth)*0.1;
 }
 
-// --- DRAW FUNCTION
+// --- DRAW
 function draw(){
     ctx.save();
-    if(shake>0){ ctx.translate(Math.random()*shake-shake/2, Math.random()*shake-shake/2); shake--; }
-
-    ctx.fillStyle = "black";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    bloodStains.forEach(b=>{
-        ctx.fillStyle = "rgba(150,0,0,0.6)";
-        ctx.beginPath(); ctx.arc(b.x,b.y,b.size,0,Math.PI*2); ctx.fill();
-    });
-
-    zombies.forEach(z=>{
-        ctx.drawImage(zombieImg, z.x-z.size/2, z.y-z.size/2, z.size, z.size);
-    });
-
-    let gradient = ctx.createRadialGradient(player.x, player.y, 50, player.x, player.y, 250);
-    gradient.addColorStop(0,"rgba(255,255,255,0.8)");
-    gradient.addColorStop(1,"rgba(0,0,0,1)");
-    ctx.fillStyle = gradient; ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    ctx.drawImage(playerImg, player.x-player.size/2, player.y-player.size/2, player.size, player.size);
-
-    ctx.fillStyle = "red"; ctx.fillRect(player.x-40, player.y-60, 80, 8);
-    ctx.fillStyle = "lime"; ctx.fillRect(player.x-40, player.y-60, 80*(displayHealth/100), 8);
-
+    if(shake>0){ctx.translate(Math.random()*shake-shake/2,Math.random()*shake-shake/2);shake--;}
+    ctx.fillStyle="black";ctx.fillRect(0,0,canvas.width,canvas.height);
+    bloodStains.forEach(b=>{ctx.fillStyle="rgba(150,0,0,0.6)";ctx.beginPath();ctx.arc(b.x,b.y,b.size,0,Math.PI*2);ctx.fill();});
+    zombies.forEach(z=>{ctx.drawImage(zombieImg,z.x-z.size/2,z.y-z.size/2,z.size,z.size);});
+    let gradient=ctx.createRadialGradient(player.x,player.y,50,player.x,player.y,250);
+    gradient.addColorStop(0,"rgba(255,255,255,0.8)");gradient.addColorStop(1,"rgba(0,0,0,1)");ctx.fillStyle=gradient;ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(playerImg,player.x-player.size/2,player.y-player.size/2,player.size,player.size);
+    ctx.fillStyle="red";ctx.fillRect(player.x-40,player.y-60,80,8);
+    ctx.fillStyle="lime";ctx.fillRect(player.x-40,player.y-60,80*(displayHealth/100),8);
     ctx.restore();
 }
 
 // --- GAME LOOP
-function gameLoop(){ update(); draw(); requestAnimationFrame(gameLoop); }
+function gameLoop(){update();draw();requestAnimationFrame(gameLoop);}
 gameLoop();
 
 // --- TIMER
 function startTimer(){
     clearInterval(timerInterval);
-    timerInterval = setInterval(()=>{
+    timerInterval=setInterval(()=>{
         if(!gameRunning) return;
         timer--;
-        document.getElementById("timer").innerText = timer;
+        document.getElementById("timer").innerText=timer;
         if(timer<=0){
-            if(currentLevel===1) endGame("🏆 LEVEL COMPLETE", true, "startLevel2");
-            else if(currentLevel===2) endGame("🏆 LEVEL COMPLETE", true, "startLevel3");
-            else if(currentLevel===3) endGame("🏆 YOU WIN!", false);
+            if(currentLevel===1) endGame("🏆 LEVEL COMPLETE",true,"startLevel2");
+            else if(currentLevel===2) endGame("🏆 LEVEL COMPLETE",true,"startLevel3");
+            else if(currentLevel===3) endGame("🏆 YOU WIN!",false);
         }
     },1000);
 }
 
 // --- END GAME
-function endGame(text, nextLevel=false, nextFunc=null){
+function endGame(text,nextLevel=false,nextFunc=null){
     gameRunning=false;
-    const msg = document.getElementById("message");
+    clearInterval(spawnInterval1); clearInterval(spawnInterval2); clearInterval(spawnInterval3); clearInterval(timerInterval);
+    document.getElementById("overlay").style.display="block";
+    const msg=document.getElementById("message");
     msg.style.display="block";
-
     let btn="";
-    if(nextLevel && nextFunc){
-        btn=`<button onclick="${nextFunc}()">Next Level</button>`;
-    } else { btn="<button onclick='location.reload()'>Restart</button>"; }
-
-    msg.innerHTML = text + "<br>" + btn;
+    if(nextLevel && nextFunc){btn=`<button onclick="${nextFunc}()">Next Level</button>`;}
+    else{btn="<button onclick='location.reload()'>Restart</button>";}
+    msg.innerHTML=text+"<br>"+btn;
 }
 
 // --- START LEVELS
 function startLevel1(){
-    currentLevel=1;
-    zombies=[]; bloodStains=[]; health=100; displayHealth=100; timer=20; gameRunning=true;
+    currentLevel=1; zombies=[]; bloodStains=[]; health=100; displayHealth=100; timer=20; gameRunning=true;
+    document.getElementById("overlay").style.display="none"; document.getElementById("message").style.display="none";
     clearInterval(spawnInterval2); clearInterval(spawnInterval3);
-
-    spawnInterval1 = setInterval(()=>spawnZombie(25,25,1.5,2,15), 2000);
+    spawnInterval1=setInterval(()=>spawnZombie(25,25,1.5,2,15),2000);
     startTimer();
+    zombieSound.play();
 }
 
 function startLevel2(){
-    currentLevel=2;
-    zombies=[]; bloodStains=[]; health=100; displayHealth=100; timer=40; gameRunning=true;
+    currentLevel=2; zombies=[]; bloodStains=[]; health=100; displayHealth=100; timer=40; gameRunning=true;
+    document.getElementById("overlay").style.display="none"; document.getElementById("message").style.display="none";
     clearInterval(spawnInterval1); clearInterval(spawnInterval3);
-
-    spawnInterval2 = setInterval(()=>spawnZombie(30,30,2,2.8,20), 800);
+    spawnInterval2=setInterval(()=>spawnZombie(30,30,2,2.8,20),800);
     startTimer();
+    zombieSound.play();
 }
 
 function startLevel3(){
-    currentLevel=3;
-    zombies=[]; bloodStains=[]; health=100; displayHealth=100; timer=50; gameRunning=true;
+    currentLevel=3; zombies=[]; bloodStains=[]; health=100; displayHealth=100; timer=50; gameRunning=true;
+    document.getElementById("overlay").style.display="none"; document.getElementById("message").style.display="none";
     clearInterval(spawnInterval1); clearInterval(spawnInterval2);
-
-    spawnInterval3 = setInterval(()=>spawnZombie(35,35,2.5,4,25), 600);
+    spawnInterval3=setInterval(()=>spawnZombie(35,35,2.5,4,25),600);
     startTimer();
+    zombieSound.play();
 }
 
 // --- START GAME
 startLevel1();
+
 </script>
 </body>
 </html>
